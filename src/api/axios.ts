@@ -4,10 +4,11 @@ import axios from 'axios';
 const apiUrl = import.meta.env.VITE_API_URL;
 
 // In development, use relative URL to leverage Vite proxy (avoids CORS)
-// In production, use the full API URL
+// In production on Vercel, use relative URL to leverage Vercel serverless function proxy
+// This avoids CORS issues since requests come from the same origin
 const baseURL = import.meta.env.DEV 
-    ? '/api/v1'  // Use proxy in development
-    : (apiUrl || '/api/v1');  // Use full URL in production
+    ? '/api/v1'  // Use Vite proxy in development
+    : '/api/v1';  // Use Vercel serverless function proxy in production
 
 // Validate that the API URL is set (only warn in production)
 if (!import.meta.env.DEV && !apiUrl) {
@@ -22,7 +23,8 @@ if (import.meta.env.DEV) {
     console.log('📡 API requests will be proxied to:', apiUrl || 'NOT SET');
     console.log('🌐 Base URL:', baseURL);
 } else {
-    console.log('🚀 Production mode: Using direct API URL');
+    console.log('🚀 Production mode: Using Vercel serverless proxy');
+    console.log('📡 Backend API:', apiUrl || 'NOT SET');
     console.log('🌐 Base URL:', baseURL);
 }
 

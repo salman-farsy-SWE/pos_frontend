@@ -23,28 +23,33 @@ export default async function handler(req: any, res: any) {
   // Backend base URL
   const BACKEND_URL = process.env.VITE_API_URL || 'https://posbackend-production-0f4a.up.railway.app/api/v1';
   
-  // Get the path from the catch-all parameter
-  // Request to /api/v1/products will have slug = ['v1', 'products']
-  const slugArray = Array.isArray(req.query.slug) 
-    ? req.query.slug 
-    : (req.query.slug ? [req.query.slug] : []);
+  // Get the path from the rewrite parameter or URL
+  // The rewrite sends /api/v1/:path* to this function
+  let backendPath = '';
   
-  // Remove 'v1' if it's the first element, then join the rest
-  const cleanPath = slugArray[0] === 'v1' 
-    ? slugArray.slice(1).join('/')
-    : slugArray.join('/');
+  // Try to get from query parameter first (from rewrite)
+  if (req.query && (req.query as any).path) {
+    const pathParam = (req.query as any).path;
+    const pathArray = Array.isArray(pathParam) ? pathParam : [pathParam].filter(Boolean);
+    backendPath = pathArray.join('/');
+  } else {
+    // Fallback: extract from URL
+    const requestPath = req.url?.split('?')[0] || '';
+    backendPath = requestPath.replace(/^\/api\/v1\//, '');
+  }
   
-  // Get query string from the original request
+  // Get query string from original URL
   const queryString = req.url?.includes('?') ? '?' + req.url.split('?')[1] : '';
   
   // Construct the full backend URL
-  const url = `${BACKEND_URL}/${cleanPath}${queryString}`;
+  const url = `${BACKEND_URL}/${backendPath}${queryString}`;
   
   console.log('Proxy request:', {
     method: req.method,
-    slug: slugArray,
-    cleanPath,
+    backendPath,
     fullUrl: url,
+    originalUrl: req.url,
+    query: req.query,
     hasAuth: !!req.headers.authorization
   });
   

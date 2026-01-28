@@ -23,8 +23,14 @@ const fetchProducts = async (page: number, search: string): Promise<ProductsResp
     const url = search
         ? `/products/search?q=${search}&page=${page}&limit=9`
         : `/products?page=${page}&limit=9`;
-    const response = await api.get(url);
-    return response.data;
+    try {
+        const response = await api.get(url);
+        console.log('API Response:', response.data);
+        return response.data;
+    } catch (error: any) {
+        console.error('Fetch products error:', error);
+        throw error;
+    }
 };
 
 const Home = () => {
@@ -65,7 +71,7 @@ const Home = () => {
                     />
                 )}
 
-                {data && (
+                {data && data.data && Array.isArray(data.data) && (
                     <>
                         <div className="flex justify-between items-center mb-8">
                             <div className="flex-1">
@@ -73,7 +79,7 @@ const Home = () => {
                                     <div className="flex items-center gap-2">
                                         <div className="w-1 h-6 bg-blue-500 rounded-full" />
                                         <span className="text-xl font-bold text-gray-800">
-                                            Results ({data.total})
+                                            Results ({data.total || 0})
                                         </span>
                                     </div>
                                 )}
@@ -108,7 +114,7 @@ const Home = () => {
                         <div className="flex justify-center mt-12 md:ml-72">
                             <Pagination
                                 current={currentPage}
-                                total={data.total}
+                                total={data.total || 0}
                                 pageSize={9}
                                 onChange={handlePageChange}
                                 showSizeChanger={false}
@@ -116,6 +122,14 @@ const Home = () => {
                             />
                         </div>
                     </>
+                )}
+                {data && (!data.data || !Array.isArray(data.data)) && (
+                    <Alert
+                        title="Invalid Response"
+                        description={`Unexpected data format. Received: ${JSON.stringify(data).substring(0, 100)}...`}
+                        type="warning"
+                        showIcon
+                    />
                 )}
             </main>
         </div>

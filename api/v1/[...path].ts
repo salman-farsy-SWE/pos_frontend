@@ -11,22 +11,27 @@ export default async function handler(req: any, res: any) {
   const BACKEND_URL = process.env.VITE_API_URL || 'https://posbackend-production-0f4a.up.railway.app/api/v1';
   
   // Get the path from the catch-all parameter
-  // Request to /api/v1/products will have path = ['v1', 'products']
+  // Request to /api/v1/products will have path = ['products']
   const pathArray = Array.isArray(req.query.path) 
     ? req.query.path 
     : (req.query.path ? [req.query.path] : []);
   
-  // Remove 'v1' from the path if it's the first element, then join the rest
-  const cleanPath = pathArray[0] === 'v1' 
-    ? pathArray.slice(1).join('/')
-    : pathArray.join('/');
+  const cleanPath = pathArray.join('/');
   
-  // Get query string from original URL
-  const queryString = req.url?.includes('?') ? req.url.substring(req.url.indexOf('?')) : '';
-  const queryParams = queryString ? queryString.substring(1) : '';
+  // Get query string from the original request URL
+  const urlObj = new URL(req.url || '', `http://${req.headers.host || 'localhost'}`);
+  const queryParams = urlObj.search;
   
   // Construct the full backend URL
-  const url = `${BACKEND_URL}/${cleanPath}${queryParams ? '?' + queryParams : ''}`;
+  const url = `${BACKEND_URL}/${cleanPath}${queryParams}`;
+  
+  console.log('Proxy request:', {
+    method: req.method,
+    path: pathArray,
+    cleanPath,
+    fullUrl: url,
+    hasAuth: !!req.headers.authorization
+  });
   
   try {
     // Prepare headers
@@ -52,6 +57,13 @@ export default async function handler(req: any, res: any) {
     
     // Forward the request to the backend
     const response = await fetch(url, fetchOptions);
+    
+    if (!response.ok) {
+      console.error('Backend error:', response.status, response.statusText);
+      const errorText = await response.text();
+      res.status(response.status).json({ error: errorText });
+      return;
+    }
     
     const contentType = response.headers.get('content-type');
     let data;

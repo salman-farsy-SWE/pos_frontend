@@ -10,23 +10,27 @@ export default async function handler(req: any, res: any) {
   // Backend base URL
   const BACKEND_URL = process.env.VITE_API_URL || 'https://posbackend-production-0f4a.up.railway.app/api/v1';
   
-  // Get the full path from the request
-  // For /api/v1/products, req.url will be /api/v1/products
-  const requestPath = req.url?.split('?')[0] || '';
+  // Get the path from the catch-all parameter
+  // Request to /api/v1/products will have slug = ['v1', 'products']
+  const slugArray = Array.isArray(req.query.slug) 
+    ? req.query.slug 
+    : (req.query.slug ? [req.query.slug] : []);
   
-  // Remove /api prefix to get the backend path
-  const backendPath = requestPath.replace(/^\/api/, '');
+  // Remove 'v1' if it's the first element, then join the rest
+  const cleanPath = slugArray[0] === 'v1' 
+    ? slugArray.slice(1).join('/')
+    : slugArray.join('/');
   
-  // Get query string
+  // Get query string from the original request
   const queryString = req.url?.includes('?') ? '?' + req.url.split('?')[1] : '';
   
   // Construct the full backend URL
-  const url = `${BACKEND_URL}${backendPath}${queryString}`;
+  const url = `${BACKEND_URL}/${cleanPath}${queryString}`;
   
   console.log('Proxy request:', {
     method: req.method,
-    requestPath,
-    backendPath,
+    slug: slugArray,
+    cleanPath,
     fullUrl: url,
     hasAuth: !!req.headers.authorization
   });

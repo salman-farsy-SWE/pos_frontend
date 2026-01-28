@@ -1,10 +1,23 @@
 export default async function handler(req: any, res: any) {
+  // Log that the function was called
+  console.log('Serverless function called:', {
+    method: req.method,
+    url: req.url,
+    query: req.query
+  });
+
   // Handle CORS preflight
   if (req.method === 'OPTIONS') {
     res.setHeader('Access-Control-Allow-Origin', '*');
     res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
     res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
     return res.status(200).end();
+  }
+  
+  // Handle all HTTP methods
+  if (!['GET', 'POST', 'PUT', 'DELETE', 'PATCH'].includes(req.method || '')) {
+    res.status(405).json({ error: 'Method not allowed' });
+    return;
   }
 
   // Backend base URL
